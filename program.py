@@ -59,7 +59,9 @@ for b in text_bytes:
     text_hexadecimals.append(text_hexadecimal)
     text_binaries.append(text_binary)
 
-for b in password_bytes:
+# Repeat password bytes to match text length
+for i in range(len(text_bytes)):
+    b = password_bytes[i % len(password_bytes)]
     password_integer = b
     password_hexadecimal = format(password_integer, '02X')
     password_binary = format(password_integer, '08b')
@@ -68,17 +70,12 @@ for b in password_bytes:
     password_hexadecimals.append(password_hexadecimal)
     password_binaries.append(password_binary)
 
-for i in range(min(len(text_binaries), len(password_binaries))):
+for i in range(max(len(text_binaries), len(password_binaries))):
     for bit in range(8):
-        if text_binaries[i][n] == password_binaries[i][n]:
+        if text_binaries[i % len(text_binaries)][bit] == password_binaries[i % len(password_binaries)][bit]:
             bit_string.append("0")
         else:
             bit_string.append("1")
-
-        if n >= 7:
-            n = 0
-        else:
-            n += 1
 
 # Group bits into bytes
 byte_string = ''.join(bit_string)
