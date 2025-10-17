@@ -1,4 +1,28 @@
-# Helper function to format bytes like Python's format_cp1250_byte
+# XOR Encoding Script for Windows PowerShell (Windows-1250 compatible)
+
+function Parse-InputString {
+    param([string]$input)
+
+    $resultBytes = New-Object System.Collections.Generic.List[byte]
+    $i = 0
+    while ($i -lt $input.Length) {
+        if ($input[$i] -eq '\' -and ($i + 3) -lt $input.Length -and $input[$i+1] -eq 'x') {
+            $hexStr = $input.Substring($i+2,2)
+            if ($hexStr -match '^[0-9A-Fa-f]{2}$') {
+                $byteVal = [Convert]::ToByte($hexStr,16)
+                $resultBytes.Add($byteVal)
+                $i += 4
+                continue
+            }
+        }
+        $char = $input[$i]
+        $bytes = [System.Text.Encoding]::GetEncoding(1250).GetBytes($char)
+        $resultBytes.AddRange($bytes)
+        $i++
+    }
+    return $resultBytes.ToArray()
+}
+
 function Format-CP1250Byte {
     param([byte]$b)
 
@@ -17,19 +41,19 @@ function Format-CP1250Byte {
 }
 
 # Read text and password
-$text = Read-Host "Enter text"
-$password = Read-Host "Enter password"
+$textInput = Read-Host "Enter text (use \xNN for hex bytes)"
+$passwordInput = Read-Host "Enter password (use \xNN for hex bytes)"
 
-# Encode to Windows-1250 bytes
-$textBytes = [System.Text.Encoding]::GetEncoding(1250).GetBytes($text)
-$passwordBytes = [System.Text.Encoding]::GetEncoding(1250).GetBytes($password)
+# Parse inputs to byte arrays
+$textBytes = Parse-InputString $textInput
+$passwordBytes = Parse-InputString $passwordInput
 
-# Prepare arrays
+# Prepare arrays for output
 $textHex = @()
 $textBin = @()
 $passwordHex = @()
 $passwordBin = @()
-$outputBytes = @()
+$outputBytes = New-Object System.Collections.Generic.List[byte]
 $outputHex = @()
 $outputBin = @()
 
@@ -43,11 +67,11 @@ foreach ($b in $passwordBytes) {
     $passwordBin += [Convert]::ToString($b,2).PadLeft(8,'0')
 }
 
-# XOR operation (byte by byte)
-$minLen = [Math]::Min($textBytes.Length, $passwordBytes.Length)
-for ($i=0; $i -lt $minLen; $i++) {
-    $xorByte = $textBytes[$i] -bxor $passwordBytes[$i]
-    $outputBytes += [byte]$xorByte
+# XOR operation (password repeats if shorter)
+for ($i = 0; $i -lt $textBytes.Length; $i++) {
+    $pIndex = $i % $passwordBytes.Length
+    $xorByte = $textBytes[$i] -bxor $passwordBytes[$pIndex]
+    $outputBytes.Add([byte]$xorByte)
     $outputHex += "{0:X2}" -f $xorByte
     $outputBin += [Convert]::ToString($xorByte,2).PadLeft(8,'0')
 }
