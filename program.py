@@ -14,11 +14,27 @@ def format_cp1250_byte(b):
     except:
         return f"\\x{b:02X}"
 
+def parse_hex_input(s):
+    result = bytearray()
+    i = 0
+    while i < len(s):
+        if i + 3 < len(s) and s[i] == '\\' and s[i+1] == 'x':
+            try:
+                byte_val = int(s[i+2:i+4], 16)
+                result.append(byte_val)
+                i += 4
+                continue
+            except ValueError:
+                pass
+        result.extend(s[i].encode('cp1250', errors='ignore'))
+        i += 1
+    return bytes(result)
+
 text = input("Enter text: ")
 password = input("Enter password: ")
 
-text_bytes = text.encode('cp1250', errors='ignore')
-password_bytes = password.encode('cp1250', errors='ignore')
+text_bytes = parse_hex_input(text)
+password_bytes = parse_hex_input(password)
 
 text_integers = []
 text_hexadecimals = []
